@@ -54,7 +54,7 @@ public class WachMainActivity extends Activity {
                             requestData(dataString.getBytes());
                         } else {
 
-                            Log.w(TAG, "Not connected, cant send the data, it will be lost ;(")
+                            Log.w(TAG, "Not connected, cant send the data, it will be lost ;(");
                         }
                     }
                 });
