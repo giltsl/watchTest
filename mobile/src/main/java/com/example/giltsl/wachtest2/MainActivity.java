@@ -1,26 +1,23 @@
 package com.example.giltsl.wachtest2;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.wearable.CapabilityApi;
-import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Set;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -29,6 +26,7 @@ public class MainActivity extends ActionBarActivity {
     private GoogleApiClient gApiClient;
     TextView textView;
     Button connectButton;
+    ImageView imageView;
     private boolean connected = false;
 
     @Override
@@ -37,18 +35,15 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         textView = (TextView)findViewById(R.id.text);
-        connectButton = (Button)findViewById(R.id.connectButton);
-        connectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!connected) {
-                    connect();
-                }
-            }
-        });
+        imageView = (ImageView)findViewById(R.id.ImageView);
+        connect();
+    }
 
 
-
+    @Override
+    protected void onResume() {
+        super.onResume();
+        gApiClient.connect();
     }
 
     private void connect() {
@@ -57,45 +52,84 @@ public class MainActivity extends ActionBarActivity {
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                     @Override
                     public void onConnected(Bundle bundle) {
-                        Log.d(TAG, "onConnected bundle = " + bundle.toString());
+                        Log.d(TAG, "onConnected bundle = ");
 
                         connected = true;
 
                         Wearable.MessageApi.addListener(gApiClient, new MessageApi.MessageListener() {
-                            @Override
-                            public void onMessageReceived(MessageEvent messageEvent) {
 
-                                byte[] bytesData = messageEvent.getData();
-                                try {
-                                    String decoded = new String(bytesData, "UTF-8");
-                                    textView.setText(decoded);
+                                @Override
+                                public void onMessageReceived(MessageEvent messageEvent) {
 
-                                } catch (UnsupportedEncodingException e) {
-                                    e.printStackTrace();
+                                    Log.d(TAG, "onMessageReceived " + messageEvent.getPath());
+
+                                    if (messageEvent.getPath().compareTo("ScreenShot") == 0) {
+                                        setNewImage(messageEvent);
+                                    } else if (messageEvent.getPath().compareTo("logs") == 0) {
+                                        setNewLog(messageEvent);
+
+                                    } else {
+                                        Log.d(TAG, "Unknown msg type");
+                                    }
                                 }
+                            });
+                        }
+
+                            @Override
+                            public void onConnectionSuspended ( int i){
+                                Log.d(TAG, "onConnectionSuspended int = " + i);
+                                connected = false;
 
                             }
-                        });
-
-                    }
-
-                    @Override
-                    public void onConnectionSuspended(int i) {
-                        Log.d(TAG, "onConnectionSuspended int = " + i );
-                        connected = false;
-
-                    }
-                })
+                        }
+                    )
                 .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
-                    @Override
-                    public void onConnectionFailed(ConnectionResult connectionResult) {
-                        Log.d(TAG, "onConnectionFailed ConnectionResult  = " + connectionResult.toString());
-                        connected = false;
+                        @Override
+                        public void onConnectionFailed (ConnectionResult connectionResult){
+                            Log.d(TAG, "onConnectionFailed ConnectionResult  = " + connectionResult.toString());
+                            connected = false;
 
+                        }
                     }
-                })
-                .addApiIfAvailable(Wearable.API)
+                ).addApiIfAvailable(Wearable.API)
                 .build();
+    }
+
+    private void setNewLog(MessageEvent messageEvent) {
+
+        byte[] bytesData = messageEvent.getData();
+        try {
+            final String decoded = new String(bytesData, "UTF-8");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    textView.setText(decoded);
+                }
+            });
+
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void setNewImage(MessageEvent messageEvent) {
+        byte[] bytesData = messageEvent.getData();
+        final Bitmap bitmap = BitmapFactory.decodeByteArray(bytesData, 0, bytesData.length);
+//
+        if (imageView != null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageBitmap(bitmap);
+                }
+            });
+
+
+        } else {
+            Log.d(TAG, "could not set imageView");
+        }
 
     }
 

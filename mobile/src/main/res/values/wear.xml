@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="android_wear_capabilities">
-        <item>data_transcription</item>
+        <item>logs</item>
+        <item>ScreenShot</item>
     </string-array>
 </resources>
